@@ -125,7 +125,7 @@ class Worker {
     protected function sendKeepAlive() {
         $currentStamp = round(microtime(true) * 1000);
         if (($currentStamp - $this->kpaLastUpdate) > ($this->kpaPeriodSendThreshold)) {
-            if (!$this->kpaStore->writeData($currentStamp, "d")) {
+            if (!$this->kpaStore->writeDouble($currentStamp)) {
                 $this->logger->log("Worker could not write it's keep-alive time: " . $currentStamp . "!");
             }
             $this->kpaLastUpdate = $currentStamp;
@@ -134,7 +134,7 @@ class Worker {
     
     protected function prepareWork() {
         // Copy job data passed by manager
-        $this->data = $this->shmStore->readData("a");
+        $this->data = $this->shmStore->readString();
         if (!$this->data) {
             $this->logger->log("Worker could not successfully copy in data.");
             // Exit signal handler processing, return to main loop to await manager re-allocation

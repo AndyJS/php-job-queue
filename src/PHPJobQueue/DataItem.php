@@ -12,4 +12,8 @@ class DataItem {
     public function getData() {
         return $this->data;
     }
+
+    public function getSize() {
+        return strlen($this->data);
+    }
 }

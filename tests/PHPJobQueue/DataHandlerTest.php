@@ -35,7 +35,7 @@ class DataHandlerTest extends \PHPUnit_Framework_TestCase {
         shmop_write($shmID, $binary, 0);
 
         $handler = new DataHandler(1221, 1220, 0);
-        $timeReturned = $handler->readData("d");
+        $timeReturned = $handler->readDouble();
 
         $this->assertEquals($timeToCheck, $timeReturned);
 
@@ -51,7 +51,7 @@ class DataHandlerTest extends \PHPUnit_Framework_TestCase {
         shmop_write($shmID, $binary, 0);
 
         $handler = new DataHandler(1231, 1230, 0);
-        $dataReturned = $handler->readData("a2048");
+        $dataReturned = $handler->readString();
 
         $this->assertEquals($dataToCheck, $dataReturned);
 
@@ -63,7 +63,7 @@ class DataHandlerTest extends \PHPUnit_Framework_TestCase {
         $timeToWrite = round(microtime(true));
 
         $handler = new DataHandler(1241, 1240, 8);
-        $bytesWritten = $handler->writeData($timeToWrite, "d");
+        $bytesWritten = $handler->writeDouble($timeToWrite);
         $this->assertGreaterThan(0, $bytesWritten);
 
         $shmID = shmop_open(1240, "w", 0, 0);
@@ -79,7 +79,7 @@ class DataHandlerTest extends \PHPUnit_Framework_TestCase {
         $dataToWrite = "G M Police @gmpolice Join us tomorrow between 12pm and 2pm for a twitterchat on dangerous dogs. Post your questions using the hashtag #AskGMP";
 
         $handler = new DataHandler(1251, 1250, 2048);
-        $bytesWritten = $handler->writeData($dataToWrite, "a2048");
+        $bytesWritten = $handler->writeString($dataToWrite);
         $this->assertGreaterThan(0, $bytesWritten);
 
         $shmID = shmop_open(1250, "w", 0, 0);

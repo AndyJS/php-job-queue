@@ -13,14 +13,17 @@ abstract class MemoryHandler {
         
     function __construct($semaphoreKey, $dataKey, $dataSize) {
         $this->semaphore = sem_get($semaphoreKey);
+
         if (!empty($dataSize) && $dataSize > 0) {
             $this->dataID = shmop_open($dataKey, "n", 0666, $dataSize);
             $this->dataSize = $dataSize;
-        } else{
+        } else {
             $this->dataID = shmop_open($dataKey, "w", 0, 0);
             $this->dataSize = shmop_size($this->dataID);
         }
-        if (!$this->dataID || !$this->semaphore) { return false; }
+        shmop_close($this->dataID);
+        if (!$this->semaphore || !$this->dataID) { return false; }
+
         $this->logger = new Logger();
         $this->semaphoreKey = $semaphoreKey;
         $this->dataKey = $dataKey;

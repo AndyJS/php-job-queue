@@ -26,6 +26,7 @@ class Manager {
     
     const STAT_DATA_SIZE = 1;                         // Allocate 1 byte to store flags for worker status
     const KPA_DATA_SIZE = 8;                          // Allocate 8 bytes to cover double stored for ms accuracy
+    const SHM_DATA_SIZE_INCREASE_RATIO = 2;           // When resizing memory allocation for large data, multiply new limit by ratio as buffer memory
 
     protected $configFile = 'jobqueue.conf';
     protected $logPath = "/var/log/";
@@ -142,7 +143,7 @@ class Manager {
         
         // Initialise keep-alive timestamp to ensure Manager does not prematurely kill worker
         $currentStamp = round(microtime(true) * 1000);
-        if (!$kpaStore->writeData($currentStamp, "d")) {
+        if (!$kpaStore->writeDouble($currentStamp)) {
             $this->logger->log("Warning: Manager could not initialise worker timestamp!");
         } else {
             $this->logger->log("Manager initialised worker timestamp at: " . $currentStamp);
@@ -154,7 +155,7 @@ class Manager {
         }
         
         if (DEBUG) {
-            $pid = 0;
+            $pid = 0;   // Breakpoint for simulation of worker PID
             $this->workers[] = $pid;
             $this->workersSHMStores[$pid] = $shmStore;
             $this->workersSTATStores[$pid] = $statStore;
@@ -230,11 +231,9 @@ class Manager {
         $numNewWorkers = 0;
         foreach ($this->workers as $pid) {
             $currentTime = round(microtime(true) * 1000);
-            $lastWorkerUpdate = $this->workersKPAStores[$pid]->readData("d");
+            $lastWorkerUpdate = $this->workersKPAStores[$pid]->readDouble();
 
             if ($lastWorkerUpdate) {
-                $diff = ($currentTime - ($lastWorkerUpdate));
-                //$this->logger->log("curr time " . $currentTime . " worker time " . $lastWorkerUpdate . " difference " . $diff . " > " . $this->keepaliveKillThreshold);
                 if (($currentTime - ($lastWorkerUpdate)) > $this->keepaliveKillThreshold) {
                     $this->logger->log("Manager has found unresponsive worker with PID " . $pid);
                     $this->logger->log("Difference between current stamp and last report is: " . ($currentTime - $lastWorkerUpdate) . ". Restarting worker...");
@@ -265,7 +264,7 @@ class Manager {
                         // Worker has yet to pick up work and set processing flag. Re-copy memory for integrity
                         $dataToProcess = $this->dataManager->getAllocatedDataItem($pid)->getData();
 
-                        if (!$this->workersSHMStores[$pid]->writeData($dataToProcess, "a")) {
+                        if (!$this->workersSHMStores[$pid]->writeString($dataToProcess)) {
                             $this->logger->log("Reallocating data for worker PID:" . $pid . " but error encountered writing shared memory");
                         } else {
                             posix_kill($pid, SIGUSR1);
@@ -284,8 +283,17 @@ class Manager {
         $dataAvailableIndex = $this->dataManager->checkPendingData();
         if ($dataAvailableIndex > -1) {
             // Write data into shared memory
-            $dataToProcess = $this->dataManager->getDataItem($dataAvailableIndex)->getData();
-            if (!$this->workersSHMStores[$pid]->writeData($dataToProcess, "a")) {
+
+            $dataToProcess = $this->dataManager->getDataItem($dataAvailableIndex);
+            $currentWorkerSHMSize = $this->workersSHMStores[$pid]->getDataSize();
+            $newDataSize = $dataToProcess->getSize();
+
+            if ($currentWorkerSHMSize < $newDataSize) {
+                // Resize shared memory for this worker as default is too low
+                $this->workersSHMStores[$pid]->resizeMemory($newDataSize * static::SHM_DATA_SIZE_INCREASE_RATIO);
+            }
+
+            if (!$this->workersSHMStores[$pid]->writeString($dataToProcess->getData())) {
                 $this->logger->log("Data found to allocate to worker PID:" . $pid . " but error encountered writing shared memory using data manager index " . $dataAvailableIndex);
                 return false;
             }
