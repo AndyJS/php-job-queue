@@ -103,6 +103,9 @@ class DataHandlerTest extends \PHPUnit_Framework_TestCase {
         
         $dataResult = unpack("a20", shmop_read($shmID, 0, 20));
         $this->assertEquals($dataToWrite, $dataResult);
+        
+        shmop_close($shmID);
+        $handler->cleanUpMemory();
     }
 }
  
