@@ -387,6 +387,7 @@ class Manager {
     protected function cleanUpSharedMemory() {
         $memoryHandlers = array_merge($this->workersSHMStores,$this->workersSTATStores,$this->workersKPAStores);
         foreach($memoryHandlers as $memoryHandler) {
+            $memoryHandler->cleanUpMemory();
             unset($memoryHandler);
         }
     }

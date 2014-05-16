@@ -28,16 +28,13 @@ abstract class MemoryHandler {
         $this->semaphoreKey = $semaphoreKey;
         $this->dataKey = $dataKey;
     }
-    
-    function __destruct() {
-        // Ensure shared memory allocations have been removed no matter the circumstance
-        $this->cleanUpMemory();
-    }
 
     public function cleanUpMemory() {
         $this->unlockData();
         @sem_remove($this->semaphore);
+        $this->dataID = @shmop_open($this->dataKey, "w", 0, 0);
         @shmop_delete($this->dataID);
+        @shmop_close($this->dataID);
     }
     
     protected function lockData() {
