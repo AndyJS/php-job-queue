@@ -90,5 +90,19 @@ class DataHandlerTest extends \PHPUnit_Framework_TestCase {
         shmop_close($shmID);
         $handler->cleanUpMemory();
     }
+    
+    public function testResizeMemory() {
+        $handler = new DataHandler(1261, 1260, 10);
+        $handler->resizeMemory($handler->getDataSize() * 2);
+        
+        $shmID = shmop_open(1260, "w", 0, 0);
+        $this->assertEquals(20, shmop_size($shmID));
+        
+        $dataToWrite = "Testing long string-";
+        $handler->writeString($dataToWrite);
+        
+        $dataResult = unpack("a20", shmop_read($shmID, 0, 20));
+        $this->assertEquals($dataToWrite, $dataResult);
+    }
 }
  
