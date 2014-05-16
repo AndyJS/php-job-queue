@@ -48,9 +48,7 @@ class StatusHandler extends MemoryHandler {
         $statusByte = unpack("C", $status);
 
         if (empty($statusByte)) { return false; }
-        $result = $statusByte[1] & static::STATUS_PROCESSING;
-        if ($result > 0) { return true; }
-        else { return false; }
+        return (($statusByte[1] & static::STATUS_PROCESSING) > 0 ? true : false);
     }
     
     public function isIdle() {
@@ -60,8 +58,6 @@ class StatusHandler extends MemoryHandler {
         $statusByte = unpack("C", $status);
 
         if (empty($statusByte)) { return false; }
-        $result = $statusByte[1] & static::STATUS_IDLE;
-        if ($result > 0) { return true; }
-        else { return false; }
+        return (($statusByte[1] & static::STATUS_IDLE) > 0 ? true : false);
     }
 }
