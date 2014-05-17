@@ -46,6 +46,7 @@ The ideal method by which to launch the application is via the included init.d s
 1. `git clone https://github.com/AndyJS/php-job-queue.git`
 
 2. `cp -r ./php-job-queue/src/PHPJobQueue /opt`
+
    Replace /opt with directory of choice if required
 
 3. Edit the file `./php-job-queue/bin/phpjobqueue`
@@ -66,7 +67,9 @@ The ideal method by which to launch the application is via the included init.d s
 Finally, the job queue can be started, restarted, and stopped via the commands:
 
 `service phpjobqueue start`
+
 `service phpjobqueue restart`
+
 `service phpjobqueue stop`
 
 Testing
