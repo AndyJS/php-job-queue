@@ -48,7 +48,8 @@ The ideal method by which to launch the application is via the included init.d s
 2. `cp -r ./php-job-queue/src/PHPJobQueue /opt`
    Replace /opt with directory of choice if required
 
-3. Edit the file ./php-job-queue/bin/phpjobqueue
+3. Edit the file `./php-job-queue/bin/phpjobqueue`
+
    Replace the value of the DAEMON_PATH property on line 4 to match the location
    to which the PHPJobQueue directory was copied in step 2
 
