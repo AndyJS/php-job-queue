@@ -23,7 +23,7 @@ Requirements
 PHP Job Queue has been tested on Ubuntu Server 13.04, and should require only
 one package, 5.4.9-4ubuntu2.4. This may be installed via the following command:
 
-sudo apt-get install php5-cli
+`sudo apt-get install php5-cli`
 
 To prepare other distributions to run PHP Job Queue, the following requirements
 must be met:
@@ -82,15 +82,9 @@ README Files
 ------------
 
 CONFIGURATION.md
+
     Defines configurable properties in the job queue configuration file.
 
 DEVELOPMENT.md
+
     Details current limitations to be aware of, and potential areas for improvement.
-
-Contact
--------
-
-Andy Slack
-@AndyJSlack
-phpjobqueue@andyjs.net
-http://andyjs.net
