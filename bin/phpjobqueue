@@ -2,38 +2,42 @@
  
 NAME=phpjobqueue
 DESC="PHP Jobqueue"
-PIDFILE="/var/run/${NAME}.pid"
-LOGFILE="/var/log/${NAME}.log" 
+PIDPATH="/var/run/phpjobqueue/"
+PIDFILE="${NAME}.pid"
+PIDFULLPATH="${PIDPATH}${PIDFILE}"
+LOGFILE="/var/log/phpjobqueue/${NAME}.log"
 DAEMON="/usr/bin/php"
 DAEMON_PATH="/opt/php-job-queue/src"
 DAEMON_ARGS="PHPJobQueue/JobQueue.php -m -c jobqueue.conf"
+DAEMON_USER="phpjobqueue"
  
-START_OPTS="--start --make-pidfile --pidfile ${PIDFILE} --exec ${DAEMON} -- ${DAEMON_ARGS}"
-STOP_OPTS="--stop --pidfile ${PIDFILE}"
-RESTART_OPTS="--stop -s HUP --pidfile ${PIDFILE}"
+START_OPTS="--start --pidfile ${PIDFULLPATH} --chdir ${DAEMON_PATH} --exec ${DAEMON} -- ${DAEMON_ARGS}"
+STOP_OPTS="--stop --pidfile ${PIDFULLPATH}"
+RESTART_OPTS="--stop -s HUP --pidfile ${PIDFULLPATH}"
 
 test -x $DAEMON || exit 0
 set -e
+mkdir -p ${PIDPATH}
+touch ${PIDFULLPATH}
+chown -R ${DAEMON_USER}:${DAEMON_USER} ${PIDPATH}
 
 case "$1" in
 	start)
 		echo -n "Starting ${DESC}: "
 		pwd
-		start-stop-daemon --chdir $DAEMON_PATH $START_OPTS >> $LOGFILE
-		echo "$NAME."
+		start-stop-daemon $START_OPTS >> $LOGFILE
+		echo "${NAME}."
 		;;
 	stop)
-		echo -n "Stopping $DESC: "
+		echo -n "Stopping ${DESC}: "
 		start-stop-daemon $STOP_OPTS
-		echo "$NAME."
-		rm -f $PIDFILE
+		echo "${NAME}."
+		rm -f ${PIDFULLPATH}
 		;;
 	restart|force-reload)
-		echo -n "Restarting $DESC: "
+		echo -n "Restarting ${DESC}: "
 		start-stop-daemon $RESTART_OPTS >> $LOGFILE
-		#sleep 1
-		#start-stop-daemon $START_OPTS >> $LOGFILE
-		echo "$NAME."
+		echo "${NAME}."
 		;;
 	*)
 		N=/etc/init.d/$NAME

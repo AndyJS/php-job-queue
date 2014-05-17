@@ -6,7 +6,7 @@ class Logger {
     protected $logFile;
     
     function __construct() {
-        $this->logFile = "/var/log/phpjobqueue.log";
+        $this->logFile = "/var/log/phpjobqueue/phpjobqueue.log";
     }
     
     public function setLogFile($logFile) {

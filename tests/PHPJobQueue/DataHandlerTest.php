@@ -102,8 +102,25 @@ class DataHandlerTest extends \PHPUnit_Framework_TestCase {
         $handler->writeString($dataToWrite);
         
         $dataResult = unpack("a20", shmop_read($shmID, 0, 20));
-        $this->assertEquals($dataToWrite, $dataResult);
+        $this->assertEquals($dataToWrite, $dataResult[1]);
         
+        shmop_close($shmID);
+        $handler->cleanUpMemory();
+    }
+
+    public function testWriteDataStringTooLong() {
+        $dataToWrite = "G M Police @gmpolice Join us tomorrow between 12pm and 2pm for a twitterchat on dangerous dogs. Post your questions using the hashtag #AskGMP";
+
+        $handler = new DataHandler(1271, 1270, 30);
+        $bytesWritten = $handler->writeString($dataToWrite);
+        $this->assertEquals(30, $bytesWritten);
+
+        $shmID = shmop_open(1270, "w", 0, 0);
+        $dataResult = unpack("a" . shmop_size($shmID), shmop_read($shmID, 0, shmop_size($shmID)));
+        $dataToCheck = "G M Police @gmpolice Join us t";
+
+        $this->assertEquals($dataToCheck, $dataResult[1]);
+
         shmop_close($shmID);
         $handler->cleanUpMemory();
     }

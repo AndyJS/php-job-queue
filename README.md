@@ -8,7 +8,7 @@ PHP classes providing data manipulation procedures.
 
 Managers have the ability to delegate processing of abstract data items to idle
 worker processes. The project aims include speed and a focus on data integrity,
-as well as the ability to scale various aspects of the queue.
+as well as flexibility within application configuration.
 
 As-is, this project's scope does not include functionality to retrieve or wait on
 any specific queue input, and workers are currently configured to publish processed
@@ -40,19 +40,18 @@ Installation
 ------------
 
 Currently this project does not utilise a build tool; Source scripts are
-executed directly by the PHP-CLI interpreter from the parent directory.
-The ideal method by which to launch the application is to utilise the included
-init.d script.
+executed directly by the PHP-CLI interpreter, with a working directory within ./src
+The ideal method by which to launch the application is via the included init.d script.
 
 1. git clone https://github.com/AndyJS/php-job-queue.git
 
 2. cp -r ./php-job-queue/src/PHPJobQueue /opt
    Replace /opt with directory of choice if required
-   
+
 3. Edit the file ./php-job-queue/bin/phpjobqueue
    Replace the value of the DAEMON_PATH property on line 4 to match the location
    to which the PHPJobQueue directory was copied in step 2
-   
+
 4. cp ./php-job-queue/bin/phpjobqueue /etc/init.d
 
 5. sudo chmod +x /etc/init.d/phpjobqueue
@@ -95,7 +94,3 @@ Andy Slack
 @AndyJSlack
 phpjobqueue@andyjs.net
 http://andyjs.net
-
-	
-	check https://github.com/fabpot/Goutte/blob/master/README.rst
-https://github.com/pickhardt/betty

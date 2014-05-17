@@ -21,7 +21,7 @@ class ConfigParser {
             $this->logger->log("Error: " . $this->configFile . " not found. Parsing failed.");
             return false;
         } else {
-            $this->logger->setLogFile($this->getConfigProperty("log_path", "log path", false, "/var/log/" . $this->logFile, false) . $this->logFile);
+            $this->logger->setLogFile($this->getConfigProperty("log_path", "log path", false, "/var/log/phpjobqueue/" . $this->logFile, false) . $this->logFile);
             return true;
         }
     }

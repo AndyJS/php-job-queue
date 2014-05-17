@@ -3,14 +3,15 @@
 
 namespace PHPJobQueue;
 
+// Close off standard input buffer to isolate processes, and route any standard output/error to default logs
+// Note we open handles immediately as first three handles are automatically assigned within PHP to these buffers
 fclose(STDIN);
 fclose(STDOUT);
 fclose(STDERR);
 $STDIN = fopen('/dev/null', 'r');
-$STDOUT = fopen('/var/log/phpjobqueue_std.log', 'a');
-$STDERR = fopen('/var/log/phpjobqueue_err.log', 'a');
+$STDOUT = fopen('/var/log/phpjobqueue/phpjobqueue_std.log', 'a');
+$STDERR = fopen('/var/log/phpjobqueue/phpjobqueue_err.log', 'a');
 
-//chdir(__DIR__);
 require_once('autoloader.php');
 
 // Avoid PHP script timeout for manager and worker instances
@@ -18,9 +19,9 @@ ini_set("max_execution_time", "0");
 ini_set("max_input_time", "0");
 set_time_limit(0);
 
-// Route PHP errors to default log file
+// Route any PHP errors to default log file
 ini_set("log_errors" , "1");
-ini_set("error_log" , "/var/log/phpjobqueue.log");
+ini_set("error_log" , "/var/log/phpjobqueue/phpjobqueue.log");
 ini_set("display_errors" , "1");
 ini_set("error_reporting", E_ALL);
 

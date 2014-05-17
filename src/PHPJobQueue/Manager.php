@@ -7,10 +7,10 @@ define('DEBUG', false);
 class Manager {
 
     protected $pid;
+    protected $uname = "phpjobqueue";
     
     protected $numWorkers;
-    
-    // All timing properties read in from configuration as microseconds to simplify mathematical operations             
+
     protected $workerShutdownPeriod;                  
     protected $keepaliveKillThreshold;                
     
@@ -22,17 +22,16 @@ class Manager {
     protected $dataManager;                           // Stores and manages data pulled from a data source for allocation purposes
 
     protected $shmDataSize;                           // Bytes to allocate to each worker data chunk
-    protected $keyProvider;
+    protected $keyProvider;                           // Manages allocation of shared memory/semaphore keys to ensure uniqueness
     
     const STAT_DATA_SIZE = 1;                         // Allocate 1 byte to store flags for worker status
     const KPA_DATA_SIZE = 8;                          // Allocate 8 bytes to cover double stored for ms accuracy
     const SHM_DATA_SIZE_INCREASE_RATIO = 2;           // When resizing memory allocation for large data, multiply new limit by ratio as buffer memory
 
     protected $configFile = 'jobqueue.conf';
-    protected $logPath = "/var/log/";
+    protected $logPath = "/var/log/phpjobqueue/";
     protected $logName = "phpjobqueue.log";
-    protected $logFile = "/var/log/phpjobqueue.log";  // Default log prior to configuration parsing
-    protected $pidFile = "/var/run/phpjobqueue.pid";
+    protected $pidFile = "/var/run/phpjobqueue/phpjobqueue.pid";
     
     protected $logger;
     protected $shutdown = false;
@@ -40,8 +39,8 @@ class Manager {
     
     function __construct($configFile) {
         $this->logger = new Logger();
-        $this->logger->setLogFile($this->logFile);
-        ini_set("error_log" , $this->logFile);
+        $this->logger->setLogFile($this->logPath . $this->logName);
+        ini_set("error_log" , $this->logPath . $this->logName);
         
         $this->setConfiguration($configFile);
         $this->keyProvider = new KeyProvider();
@@ -65,9 +64,10 @@ class Manager {
             $this->logger->log("Parsing errors found. Manager is terminating...");
             exit(6);
         }
-        
-        $this->logFile = $configParser->getConfigProperty("log_path", "log path", false, $this->logPath, true) . $this->logName;
-        $this->logger->setLogFile($this->logFile);
+
+        $this->uname = $configParser->getConfigProperty("uname", "username", false, $this->uname, true);
+        $this->logPath = $configParser->getConfigProperty("log_path", "log path", false, $this->logPath, true);
+        $this->logger->setLogFile($this->logPath . $this->logName);
         $this->numWorkers = $configParser->getConfigProperty("manager_num_workers", "number of workers", true, 10, true);
         $this->shmDataSize = $configParser->getConfigProperty("worker_data_chunk_maxsize", "worker data size", true, 2048, true);
         $this->workerShutdownPeriod = $configParser->getConfigProperty("manager_worker_shutdown_period", "worker shutdown period", true, 3000, true);
@@ -84,18 +84,25 @@ class Manager {
         if ($pid = pcntl_fork()) { exit(0); }
         if (posix_setsid() < 0) { exit(0); }
         $this->registerSignalHandler();
-        //if ($pid = pcntl_fork()) { exit(0); }
 
         $this->pid = getmypid();
         $this->keyProvider->updateBaseIDFromPID();
-        
+
         // Update daemon PID
         $handle = @fopen($this->pidFile, 'w');
         if ($handle) {
             fwrite($handle, $this->pid);
             fclose($handle);
         } else {
-            trigger_error(__CLASS__ . "Error: Could not update " . $this->pidFile . " with new PID " . $this->pid, E_USER_ERROR);
+            $this->logger->log(__CLASS__ . " Error: Could not update " . $this->pidFile . " with new PID " . $this->pid);
+            exit(7);
+        }
+
+        $userInfo = posix_getpwnam($this->uname);
+        $uid = $userInfo["uid"];
+        if (!posix_setuid($uid)) {
+            $this->logger->log(__CLASS__ . "Error: Could not switch user to " . $this->uname);
+            exit(8);
         }
         
         $this->logger->log("Manager daemon running under PID: " . $this->pid);
@@ -191,28 +198,31 @@ class Manager {
             $result = pcntl_exec("/usr/bin/php", $arguments);
 
             // If the child process reaches this point, execution of worker script failed.
-            // Signal manager via SIGCHLD
+            // Signal manager via SIGCHLD for reaping
             $this->logger->log("Execution of new worker failed. Zombie child terminating...");
-            exit(7);
+            exit(9);
         }
     }
     
     protected function monitor() {
-        while(true) {
-            usleep(100);
+        // Manager currently loops indefinitely until termination. On implementation of data source connection, methods
+        // may become available to employ blocking techniques if CPU impact is an issue. Sleeping is not ideal as this
+        // reduces manager's performance when delegating new data.
 
+        while(true) {
             // Check with the PHP interpreter for pending signals
             pcntl_signal_dispatch();
 
+            // Halt if SIGTERM/SIGHUP was processed
             if ($this->shutdown) { $this->shutdown(); }
             if ($this->restart) { $this->shutdown(true); }
 
-            // Pull data into pool from designated source, if required
+            // Pull any present data into pool from designated source
             $this->populateDataPool();
             // Perform health check on all workers
             $this->checkWorkerCount();
             $this->checkWorkerHealth();
-            // Update delegated data chunks for workers
+            // Update delegated data for worker processing
             $this->updateDataAllocation();
         }
     }
@@ -236,7 +246,7 @@ class Manager {
             if ($lastWorkerUpdate) {
                 if (($currentTime - ($lastWorkerUpdate)) > $this->keepaliveKillThreshold) {
                     $this->logger->log("Manager has found unresponsive worker with PID " . $pid);
-                    $this->logger->log("Difference between current stamp and last report is: " . ($currentTime - $lastWorkerUpdate) . ". Restarting worker...");
+                    $this->logger->log("Difference between current time stamp and last keep-alive report is: " . ($currentTime - $lastWorkerUpdate) . ". Restarting worker...");
                     posix_kill($pid, SIGKILL);
                     $pidsToClean[] = $pid;
                     $numNewWorkers++;
@@ -268,8 +278,8 @@ class Manager {
                             $this->logger->log("Reallocating data for worker PID:" . $pid . " but error encountered writing shared memory");
                         } else {
                             posix_kill($pid, SIGUSR1);
-                            /* Potential improvement: Add counter and restart worker if data is not picked up
-                             * after a number of signals */
+                            // Potential improvement: Add counter and restart worker if data is not picked up
+                            //                        successfully within a given amount of attempts
                         }
                     }
                 }
@@ -283,7 +293,6 @@ class Manager {
         $dataAvailableIndex = $this->dataManager->checkPendingData();
         if ($dataAvailableIndex > -1) {
             // Write data into shared memory
-
             $dataToProcess = $this->dataManager->getDataItem($dataAvailableIndex);
             $currentWorkerSHMSize = $this->workersSHMStores[$pid]->getDataSize();
             $newDataSize = $dataToProcess->getSize();
@@ -361,11 +370,9 @@ class Manager {
             }
         }
         
-        /* Dump all unprocessed data to log for integrity. This method creates a
-         * file per data item dumped. For scale, some serialisation and file
-         * encoding may be required to minimise the number of files created.
-         * Alternatively, this data could be published elsewhere for reprocessing.
-         */
+        // Dump all unprocessed data to log for integrity. This method creates a file per data item dumped.
+        // For scale, some serialisation may aid to minimise the number of files created by writing all
+        // oustanding data to one file. Alternatively, this data could be published elsewhere via Socket, etc for processing.
         $this->dataManager->logAllData($this->logPath);
 
         // Clean up all shared memory in use
@@ -375,9 +382,10 @@ class Manager {
             $this->logger->log("Manager restarting...");
             // Fully replace current process with new instance of Manager
             pcntl_exec("/usr/bin/php", array(__DIR__ . "/JobQueue.php", "-m", "-c " . $this->configFile));
+
             // If execution continues, process replacement has failed, exit abnormally
             $this->logger->log("Manager has not been able to restart and maintain stability. Terminating...");
-            exit(8);
+            exit(10);
         } else {
             $this->logger->log("Manager shutting down");
             exit(0);
@@ -419,6 +427,9 @@ class Manager {
 
     protected function reapWorkers() {
         $childStatus = null;
+
+        // No hang flag utilised to retain manager performance.
+        // Any children which have yet to be reaped will be picked up on the following monitor loop.
         $child = pcntl_waitpid(-1, $childStatus, WNOHANG);
         if ($child > 0) {
             if (pcntl_wifexited($childStatus)) {
@@ -448,7 +459,7 @@ class Manager {
                 $this->logger->log("Manager received shutdown signal");
                 break;
             case SIGCHLD:
-                // Deal with zombie child
+                // Deal with zombie child, aiding manager in re-fork/shutdown processes
                 $this->reapWorkers();
                 break;
         }

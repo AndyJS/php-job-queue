@@ -3,7 +3,8 @@
 namespace PHPJobQueue;
 
 class StatusHandler extends MemoryHandler {
-    
+
+    // Define current bits within the byte allocated for shared memory status reporting
     const STATUS_IDLE = 0x80;
     const STATUS_PROCESSING = 0x40;
         

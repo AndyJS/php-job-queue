@@ -3,35 +3,36 @@
 namespace PHPJobQueue;
 
 class Worker {
-    
+
+    // Worker-specific shared memory handlers
     protected $shmStore;
     protected $statStore;
     protected $kpaStore;
-    
+
     protected $kpaPeriod;
-    protected $kpaPeriodSendThreshold;
+    protected $kpaPeriodSendThreshold;        // Stores the saftey threshold for updating the worker's keep-alive signal
+
     protected $shmDataSize;
 
-    const KPA_SEND_THRESHOLD_RATIO = 1.75;
+    const KPA_SEND_THRESHOLD_RATIO = 0.75;    // Defines the fraction of the update period to assign to saftey threshold
     
     protected $shutdown = false;
     protected $workAvailable = false;
     protected $kpaLastUpdate;
     
     protected $data;
-    protected $pipelineModules;
-    protected $dataPipeline;
+    protected $pipelineModules;               // Stores array of classes implementing the worker's current Tasks
+    protected $dataPipeline;                  // Stores array of objects implementing the classes defined in pipelineModules
     
     protected $logger;
-    protected $logPath = "/var/log/";
+    protected $logPath = "/var/log/phpjobqueue/";
     protected $logName = "phpjobqueue.log";
-    protected $logFile = "/var/log/phpjobqueue.log";
     protected $configFile = 'jobqueue.conf';
     
     function __construct($shmSem, $shmKey, $statSem, $statKey, $kpaSem, $kpaKey, $configFile) {
         $this->logger = new Logger();
-        $this->logger->setLogFile($this->logFile);
-        ini_set("error_log" , $this->logFile);
+        $this->logger->setLogFile($this->logPath . $this->logName);
+        ini_set("error_log" , $this->logPath . $this->logName);
 
         $this->setConfiguration($configFile);
         $this->setupDataStores($shmSem, $shmKey, $statSem, $statKey, $kpaSem, $kpaKey);
@@ -50,7 +51,7 @@ class Worker {
     }
 
     protected function setupDataStores($shmSem, $shmKey, $statSem, $statKey, $kpaSem, $kpaKey) {
-        // Setup worker data stores
+        // Setup worker data stores to access existing Manager-created memory
         $this->shmStore = new DataHandler($shmSem, $shmKey, null);
         $this->statStore = new StatusHandler($statSem, $statKey, null);
         $this->kpaStore = new DataHandler($kpaSem, $kpaKey, null);
@@ -71,11 +72,13 @@ class Worker {
             exit(1);
         }
         
-        $this->logFile = $configParser->getConfigProperty("log_path", "log path", false, $this->logPath, true) . $this->logName;
-        $this->logger->setLogFile($this->logFile);
+        $this->logPath = $configParser->getConfigProperty("log_path", "log path", false, $this->logPath, true);
+        $this->logger->setLogFile($this->logPath . $this->logName);
+
         $this->kpaPeriod = $configParser->getConfigProperty("worker_keepalive_period", "worker keepalive period", true, 2000, true);
-        $this->kpaPeriodSendThreshold = $this->kpaPeriod / static::KPA_SEND_THRESHOLD_RATIO;
+        $this->kpaPeriodSendThreshold = $this->kpaPeriod * static::KPA_SEND_THRESHOLD_RATIO;
         $this->kpaLastUpdate = 0;
+
         $this->shmDataSize = $configParser->getConfigProperty("worker_data_chunk_maxsize", "worker data size", true, 2048, true);
         
         $this->pipelineModules = $configParser->getConfigProperty("worker_modules", "worker pipeline tasks", false, array(), true);
@@ -106,8 +109,8 @@ class Worker {
     
     protected function waitForWork() {
         while(true) {
-            /* We utilise best practice for picking up posix signals, however need to analyse
-             * whether signals are picked up during usleep to improve pickup speed of worker */
+            // Utilise best practice for picking up posix signals. Potential performance impact if signals not picked up
+            // during usleep, as worker needs to wait for dispatch to process any data passed. Analysis needed.
             pcntl_signal_dispatch();
 
             // Shutdown immediately if request has been received
@@ -137,7 +140,8 @@ class Worker {
         $this->data = $this->shmStore->readString();
         if (!$this->data) {
             $this->logger->log("Worker could not successfully copy in data.");
-            // Exit signal handler processing, return to main loop to await manager re-allocation
+            // As work preparation is kicked off by SIGUSR1, wokrer exits signal handler processing to return to main
+            // loop to await manager re-allocation
             return;
         } else {
             $this->work();
@@ -168,8 +172,8 @@ class Worker {
     protected function publish() {
         $published = false;
         
-        /* Publish data to endpoint until successful
-            We do not want to accept any further data until this has been confirmed */
+        // Publish data to endpoint until successful
+        // Worker does not want to accept any further data until this has been confirmed
         while (!$published) {
             pcntl_signal_dispatch();
 
@@ -186,8 +190,8 @@ class Worker {
                     $this->logger->log("Worker has published data successfully and will now shutdown");
                     exit(0);
                 }
-                /* Manager has requested shutdown, but worker will reattempt
-                    to publish data prior to manager forcing termination */
+                // Manager has requested shutdown and worker has not published yet.
+                // Worker will reattempt to publish data prior to manager forcing termination within it's threshold
             }
         }
         // Signal to manager that data has been published and return to main wait loop
@@ -197,10 +201,8 @@ class Worker {
     }
     
     protected function sendData() {
-        /* Current publishing process out of scope.
-         * If successful we return true.
-         * Currently we prototype publishing by dumping output data to file
-         */
+        // Current publishing process out of scope. If successful function returns true.
+        // Currently we prototype publishing by dumping output data to flatfile
         
         $tmpLogger = new Logger();
         $tmpWorkLog = $this->logPath . "phpjobqueue_worker_" . $this->pid . "_output_" . time() . ".log";

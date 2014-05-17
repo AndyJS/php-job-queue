@@ -29,6 +29,7 @@ class DataHandler extends MemoryHandler {
     }
 
     public function refreshDataReference() {
+        // Refresh of data block size and ID necessary to keep synchronised prior to data read/write post-resize
         $this->dataID = shmop_open($this->dataKey, "w", 0, 0);
         $this->dataSize = shmop_size($this->dataID);
         shmop_close($this->dataID);
@@ -70,8 +71,12 @@ class DataHandler extends MemoryHandler {
     }
 
     public function resizeMemory($newSize) {
-        shmop_close($this->dataID);
-        shmop_delete($this->dataID);
+        // Remove existing shared memory
+        $this->dataID = @shmop_open($this->dataKey, "w", 0, 0);
+        @shmop_delete($this->dataID);
+        @shmop_close($this->dataID);
+
+        // Instantiate new memory
         $this->dataID = shmop_open($this->dataKey, "n", 0666, $newSize);
         $this->dataSize = $newSize;
         shmop_close($this->dataID);
