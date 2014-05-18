@@ -45,3 +45,4 @@ The following properties are available for assignment:
   - `worker_modules[]`
 
     Specified as per PHP INI file array guidlines, and the included Task examples. This array provides a list of class names, implementing the Task interface, which will be included in any worker's data processing pipeline.
+    The class names listed here must be valid PHP class files, defined within the PHPJobQueue namespace.
