@@ -7,7 +7,7 @@ PIDFILE="${NAME}.pid"
 PIDFULLPATH="${PIDPATH}${PIDFILE}"
 LOGFILE="/var/log/phpjobqueue/${NAME}.log"
 DAEMON="/usr/bin/php"
-DAEMON_PATH="/opt/php-job-queue/src"
+DAEMON_PATH="/opt"
 DAEMON_ARGS="PHPJobQueue/JobQueue.php -m -c jobqueue.conf"
 DAEMON_USER="phpjobqueue"
  
