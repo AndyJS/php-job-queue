@@ -64,13 +64,22 @@ The ideal method by which to launch the application is via the included init.d s
 
 8. `sudo chown phpjobqueue:phpjobqueue /var/log/phpjobqueue`
 
+Changing Log Location or User
+-----------------------------
+
+Please note, that as it stands if log_path or uname in jobqueue.conf are altered at any time, steps 7 and 8 will need to be re-run with the appropriate path and username.
+In addition, the variables LOGFILE and DAEMON_USER within the init.d script phpjobqueue must be changed to reflect the new values.
+
+Execution
+---------
+
 Finally, the job queue can be started, restarted, and stopped via the commands:
 
-`service phpjobqueue start`
+`sudo service phpjobqueue start`
 
-`service phpjobqueue restart`
+`sudo service phpjobqueue restart`
 
-`service phpjobqueue stop`
+`sudo service phpjobqueue stop`
 
 Testing
 -------
