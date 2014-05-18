@@ -9,6 +9,11 @@ class ConfigParserTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue($configParser->parseConfiguration());
     }
 
+    public function testParseINIRelative() {
+        $configParser = new ConfigParser("../../tests/PHPJobQueue/jobqueuetest.conf");
+        $this->assertTrue($configParser->parseConfiguration());
+    }
+
     public function testGettingNumericProperty() {
         $configParser = new ConfigParser(__DIR__ . "/jobqueuetest.conf");
         $configParser->parseConfiguration();

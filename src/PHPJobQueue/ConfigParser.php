@@ -3,18 +3,25 @@
 namespace PHPJobQueue;
 
 class ConfigParser {
-    
+
+    protected $inputFile;
     protected $configFile;
     protected $logger;
     protected $queueConfiguration;
     protected $logFile = "phpjobqueue.log";
     
     function __construct($configFile) {
-        $this->configFile = $configFile;
+        $this->inputFile = $configFile;
         $this->logger = new Logger();
     }
     
     public function parseConfiguration() {
+        if ($this->inputFile[0] == "/") {
+            $this->configFile = $this->inputFile;
+        } else {
+            $this->configFile = realpath(__DIR__ . "/" . $this->inputFile);
+        }
+        $this->logger->log("Reading configuration file " . $this->inputFile . " resolved to " . $this->configFile);
         $this->queueConfiguration = parse_ini_file($this->configFile);
         
          if (! $this->queueConfiguration) {

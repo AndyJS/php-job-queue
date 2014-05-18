@@ -56,10 +56,9 @@ class Manager {
     }
     
     protected function setConfiguration($configFile) {
-        $this->logger->log("Manager reading configuration file " . $configFile);
-        $configParser = new ConfigParser($configFile);
         $this->configFile = $configFile;
-        
+        $configParser = new ConfigParser($this->configFile);
+
         if (!$configParser->parseConfiguration()) {
             $this->logger->log("Parsing errors found. Manager is terminating...");
             exit(6);
@@ -98,6 +97,7 @@ class Manager {
             exit(7);
         }
 
+        // Switch to non-privileged user
         $userInfo = posix_getpwnam($this->uname);
         $uid = $userInfo["uid"];
         if (!posix_setuid($uid)) {
