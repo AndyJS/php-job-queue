@@ -36,6 +36,10 @@ must be met:
 To execute the included unit tests, PHPUnit must be installed as per
 instructions available at http://phpunit.de
 
+To obtain the project files, Git must be installed:
+
+`sudo apt-get install git-core`
+
 Installation
 ------------
 
