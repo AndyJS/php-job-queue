@@ -119,6 +119,7 @@ To execute all unit tests, carry out the following commands:
 
 1. `usermod -a -G phpjobqueue yourusername`
 	This is to ensure you have correct privileges for log access.
+
         Re-log to gain group access.
 2. `cd ./php-job-queue` or cd to the root of the cloned git repository
 3. `phpunit`
