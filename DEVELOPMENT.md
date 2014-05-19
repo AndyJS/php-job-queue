@@ -26,6 +26,7 @@ Shared Memory Support
 By default, Ubuntu Server 13.04 supports the following limits on System V Shared Memory usage:
 
 Max total shared memory:        8388MB
+
 Max shared memory segment size: 33554KB
 
-Depending on the data sizes and number of workers being maintained after deployment, these values may have to be tweaked via manipulation of the values in the files under /proc/sys/kernel. See http://tech.vys.in/2007/08/ipc-limits-in-linux.html
+Depending on the data sizes and number of workers being maintained after deployment, these values may have to be tweaked via manipulation of the values in the files under `/proc/sys/kernel`. See http://tech.vys.in/2007/08/ipc-limits-in-linux.html
