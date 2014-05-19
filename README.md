@@ -58,7 +58,9 @@ The ideal method by which to launch the application is via the included init.d s
 3. If you wish to install the scripts under a directory in which the above user does not have read access, the following commands should be executed:
 
 	`sudo mkdir -p /opt/phpjobqueue`
+	
 	`sudo chown -R phpjobqueue:phpjobqueue /opt/phpjobqueue`
+	
 	`sudo chmod ug+s /opt/phpjobqueue`
 
 4. Copy all files under the src directory to the location from which you wish to run the scripts.
@@ -74,9 +76,13 @@ The ideal method by which to launch the application is via the included init.d s
    `sudo chmod +x /etc/init.d/phpjobqueue`
 
 5. `sudo mkdir /var/log/phpjobqueue`
+
    `sudo chmod ug+s /var/log/phpjobqueue`
+
    `sudo touch /var/log/phpjobqueue/phpjobqueue.log`
+   
    `sudo chmod 664 /var/log/phpjobqueue/phpjobqueue.log`
+   
    `sudo chown -R phpjobqueue:phpjobqueue /var/log/phpjobqueue`
 
 Changing Log Location or User
