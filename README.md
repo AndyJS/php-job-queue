@@ -36,6 +36,10 @@ must be met:
 To execute the included unit tests, PHPUnit must be installed as per
 instructions available at http://phpunit.de
 
+On Ubuntu Server 13.04, the following command can be run:
+
+`sudo apt-get install phpunit`
+
 To obtain the project files, Git must be installed:
 
 `sudo apt-get install git-core`
@@ -48,25 +52,32 @@ executed directly by the PHP-CLI interpreter, with a working directory within ./
 The ideal method by which to launch the application is via the included init.d script.
 
 1. `git clone https://github.com/AndyJS/php-job-queue.git`
+ 
+2. `sudo useradd -r phpjobqueue -s /bin/false`
 
-2. `cp -r ./php-job-queue/src/PHPJobQueue /opt`
+3. If you wish to install the scripts under a directory in which the above user does not have read access, the following commands should be executed:
 
-   Replace /opt with directory of choice if required
+	`sudo mkdir -p /opt/phpjobqueue`
+	`sudo chown -R phpjobqueue:phpjobqueue /opt/phpjobqueue`
+	`sudo chmod ug+s /opt/phpjobqueue`
+
+4. Copy all files under the src directory to the location from which you wish to run the scripts.
+
+   i.e. `sudo cp -r ./php-job-queue/src/* /opt/phpjobqueue`
 
 3. Edit the file `./php-job-queue/bin/phpjobqueue`
 
    Replace the value of the DAEMON_PATH property on line 4 to match the location
-   to which the PHPJobQueue directory was copied in step 2
+   to which the PHPJobQueue directory was copied in step 4
 
-4. `cp ./php-job-queue/bin/phpjobqueue /etc/init.d`
+4. `sudo cp ./php-job-queue/bin/phpjobqueue /etc/init.d`
+   `sudo chmod +x /etc/init.d/phpjobqueue`
 
-5. `sudo chmod +x /etc/init.d/phpjobqueue`
-
-6. `sudo useradd -r phpjobqueue -s /bin/false`
-
-7. `sudo mkdir /var/log/phpjobqueue`
-
-8. `sudo chown phpjobqueue:phpjobqueue /var/log/phpjobqueue`
+5. `sudo mkdir /var/log/phpjobqueue`
+   `sudo chmod ug+s /var/log/phpjobqueue`
+   `sudo touch /var/log/phpjobqueue/phpjobqueue.log`
+   `sudo chmod 664 /var/log/phpjobqueue/phpjobqueue.log`
+   `sudo chown -R phpjobqueue:phpjobqueue /var/log/phpjobqueue`
 
 Changing Log Location or User
 -----------------------------
@@ -89,10 +100,15 @@ Testing
 -------
 
 The Test Suite under tests/PHPJobQueue is defined within phpunit.xml in the
-project root. To execute all unit tests, carry out the following commands:
+project root.
 
-1. `git clone https://github.com/AndyJS/php-job-queue.git`
-2. `cd php-job-queue`
+Please carry out all installation steps prior to running unit tests.
+
+To execute all unit tests, carry out the following commands:
+
+1. usermod -G phpjobqueue yourusername
+	This is to ensure you have correct privileges for log access.
+2. `cd ./php-job-queue` or cd to the root of the cloned git repository
 3. `phpunit`
 
 README Files
