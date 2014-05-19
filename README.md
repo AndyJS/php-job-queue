@@ -67,15 +67,20 @@ The ideal method by which to launch the application is via the included init.d s
 
    i.e. `sudo cp -r ./php-job-queue/src/* /opt/phpjobqueue`
 
-3. Edit the file `./php-job-queue/bin/phpjobqueue`
+5. Edit the file `./php-job-queue/bin/phpjobqueue`
 
    Replace the value of the DAEMON_PATH property on line 4 to match the location
    to which the PHPJobQueue directory was copied in step 4
 
-4. `sudo cp ./php-job-queue/bin/phpjobqueue /etc/init.d`
+6. `sudo cp ./php-job-queue/bin/phpjobqueue /etc/init.d`
+
    `sudo chmod +x /etc/init.d/phpjobqueue`
 
-5. `sudo mkdir /var/log/phpjobqueue`
+7. Set up the default log file.
+
+   It is recommended you retain the default log location, however for a custom location please replace /var/log in the steps below. Please note these steps are required as-is if you are to be running unit tests.
+   
+   `sudo mkdir /var/log/phpjobqueue`
 
    `sudo chmod ug+s /var/log/phpjobqueue`
 
@@ -88,7 +93,7 @@ The ideal method by which to launch the application is via the included init.d s
 Changing Log Location or User
 -----------------------------
 
-Please note, that as it stands if log_path or uname in jobqueue.conf are altered at any time, steps 7 and 8 will need to be re-run with the appropriate path and username.
+Please note, that as it stands if log_path or uname in jobqueue.conf are altered at any time, steps 2, 3, 5 and 7 will need to be re-run with the appropriate path and username.
 In addition, the variables LOGFILE and DAEMON_USER within the init.d script phpjobqueue must be changed to reflect the new values.
 
 Execution
