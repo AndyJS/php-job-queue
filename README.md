@@ -78,7 +78,7 @@ The ideal method by which to launch the application is via the included init.d s
 
 7. Set up the default log file.
 
-   It is recommended you retain the default log location, however for a custom location please replace /var/log in the steps below. Please note these steps are required as-is if you are to be running unit tests.
+   It is recommended you retain the default log location, however for a custom location please replace /var/log in the steps below. You will also need to edit the LOGFILE variable within the init script, and repeat steps 5 and 6. Please note these commands below are required as-is if you are to be running unit tests.
    
    `sudo mkdir /var/log/phpjobqueue`
 
