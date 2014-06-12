@@ -93,7 +93,7 @@ class Worker {
             $module = null;
             if (class_exists('PHPJobQueue\\' . $moduleName, true)) {
                 $moduleToLoad = 'PHPJobQueue\\' . $moduleName;
-                $module = new $moduleToLoad();
+                $module = new $moduleToLoad($this->configFile);
             }
             if (empty($module)) {
                 $this->logger->log("Worker cannot load module " . $moduleName);
@@ -122,6 +122,9 @@ class Worker {
             $this->sendKeepAlive();
             // Sleep to minimise busy wait impact
             usleep($this->kpaPeriodSendThreshold);
+
+            // Execute tasks
+            $this->work();
         }
     }
     
@@ -150,7 +153,8 @@ class Worker {
     
     protected function work() {
         $this->statStore->setActive();
-        $processedData = $this->data;
+        // No longer read in data as Tasks stream data from external sources, not the Manager/Worker
+        //$dataToProcess = $this->data;
         
         foreach($this->dataPipeline as $task) {
             pcntl_signal_dispatch();
@@ -158,15 +162,15 @@ class Worker {
             // Continue to update keep-alive whilst processing each task
             $this->sendKeepAlive();
             
-            $result = $task->process($processedData);
-            if ($result) {
-                $processedData = $result;
-            } else {
+            $processResult = $task->process();
+            if (!$processResult) {
                 $this->logger->log("Worker task " . get_class($task) . " failed to process data");
             }
+            $publishResult = $task->publish();
+            if (!$publishResult) {
+                $this->logger->log("Worker task " . get_class($task) . " failed to publish data");
+            }
         }
-        
-        $this->publish($processedData);
     }
     
     protected function publish() {

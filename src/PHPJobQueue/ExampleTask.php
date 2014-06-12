@@ -3,9 +3,16 @@
 namespace PHPJobQueue;
 
 class ExampleTask implements Task {
-    
-    public function process($data) {
-        return str_rot13($data);
+
+    private $data = null;
+
+    public function process() {
+        $this->data = str_rot13("test");
+        return true;
+    }
+
+    public function publish() {
+        return true;
     }
     
 }

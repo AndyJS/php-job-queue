@@ -15,13 +15,13 @@ class ConfigParser {
         $this->logger = new Logger();
     }
     
-    public function parseConfiguration() {
+    public function parseConfiguration($log = true) {
         if ($this->inputFile[0] == "/") {
             $this->configFile = $this->inputFile;
         } else {
             $this->configFile = realpath(__DIR__ . "/" . $this->inputFile);
         }
-        $this->logger->log("Reading configuration file " . $this->inputFile . " resolved to " . $this->configFile);
+        if ($log) { $this->logger->log("Reading configuration file " . $this->inputFile . " resolved to " . $this->configFile); }
         $this->queueConfiguration = parse_ini_file($this->configFile);
         
          if (! $this->queueConfiguration) {

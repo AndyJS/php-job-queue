@@ -72,6 +72,23 @@ class Manager {
         $this->workerShutdownPeriod = $configParser->getConfigProperty("manager_worker_shutdown_period", "worker shutdown period", true, 3000, true);
         $this->keepaliveKillThreshold = $configParser->getConfigProperty("manager_keepalive_threshold", "keep-alive threshold", true, 2000, true);
     }
+
+    protected function refreshConfiguration() {
+        $configParser = new ConfigParser($this->configFile);
+
+        if (!$configParser->parseConfiguration(false)) {
+            $this->logger->log("Parsing errors found. Manager will retain previous settings.");
+            return false;
+        }
+
+        $this->uname = $configParser->getConfigProperty("uname", "username", false, $this->uname, false);
+        $this->logPath = $configParser->getConfigProperty("log_path", "log path", false, $this->logPath, false);
+        $this->logger->setLogFile($this->logPath . $this->logName);
+        $this->numWorkers = $configParser->getConfigProperty("manager_num_workers", "number of workers", true, 10, false);
+        $this->shmDataSize = $configParser->getConfigProperty("worker_data_chunk_maxsize", "worker data size", true, 2048, false);
+        $this->workerShutdownPeriod = $configParser->getConfigProperty("manager_worker_shutdown_period", "worker shutdown period", true, 3000, false);
+        $this->keepaliveKillThreshold = $configParser->getConfigProperty("manager_keepalive_threshold", "keep-alive threshold", true, 2000, false);
+    }
     
     protected function daemonise() {
         if (DEBUG) { 
@@ -210,6 +227,9 @@ class Manager {
         // reduces manager's performance when delegating new data.
 
         while(true) {
+            // Pick-up any changes to configuration, i.e. worker pool size
+            $this->refreshConfiguration();
+
             // Check with the PHP interpreter for pending signals
             pcntl_signal_dispatch();
 
@@ -228,12 +248,14 @@ class Manager {
     }
     
     protected function checkWorkerCount() {
-        $numWorkersToFork = 0;
-        while(count($this->workers) < $this->numWorkers) {
-            $this->logger->log("Manager forking additional worker to meet capacity...");
-            $numWorkersToFork++;
+        $numWorkersToFork = $this->numWorkers - count($this->workers);
+        if ($numWorkersToFork > 0) {
+            for ($i = 1; $i <= $numWorkersToFork; $i++) {
+                $this->createWorkers($numWorkersToFork);
+            }
+        } else if ($numWorkersToFork < 0) {
+            // TODO - Need to locate idle worker and kill
         }
-        if ($numWorkersToFork > 0) { $this->createWorkers($numWorkersToFork); }
     }
     
     protected function checkWorkerHealth() {

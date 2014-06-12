@@ -3,9 +3,15 @@
 namespace PHPJobQueue;
 
 class ExampleTaskTwo implements Task {
-    
-    public function process($data) {
-        return $data . "\n[This data parsed by ExampleTaskTwo]";
+
+    private $data = null;
+
+    public function process() {
+        $this->data = "Test \n[This data parsed by ExampleTaskTwo]";
+        return true;
     }
-    
+
+    public function publish() {
+        return true;
+    }
 }

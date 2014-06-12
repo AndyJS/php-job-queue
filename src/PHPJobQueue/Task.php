@@ -3,7 +3,10 @@
 namespace PHPJobQueue;
 
 interface Task {
-    
-    public function process($data);
+
+    function __construct($configFile);
+
+    public function process();
+    public function publish();
     
 }
